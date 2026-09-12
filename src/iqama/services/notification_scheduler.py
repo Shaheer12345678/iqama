@@ -75,7 +75,7 @@ class NotificationScheduler:
 
     def _fire(self, prayer: str, is_adhan: bool) -> None:
         if is_adhan:
-            send_desktop_notification(f"{prayer} — Adhan", f"It's time for {prayer} prayer.")
+            send_desktop_notification(f"{prayer}: Adhan", f"It's time for {prayer} prayer.")
         else:
             lead = self._settings.notify_minutes
             plural = "s" if lead != 1 else ""

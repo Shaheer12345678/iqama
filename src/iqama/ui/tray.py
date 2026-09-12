@@ -98,12 +98,12 @@ class TrayApplication:
 
     def _refresh_tooltip(self) -> None:
         if self._today_times is None:
-            self._tray_icon.setToolTip(f"{APP_NAME} — prayer times unavailable (offline)")
+            self._tray_icon.setToolTip(f"{APP_NAME}: prayer times unavailable (offline)")
             return
 
         upcoming = self.prayer_service.next_prayer(self._today_times)
         if upcoming is None:
-            self._tray_icon.setToolTip(f"{APP_NAME} — all of today's prayers have passed")
+            self._tray_icon.setToolTip(f"{APP_NAME}: all of today's prayers have passed")
             return
 
         name, when = upcoming
