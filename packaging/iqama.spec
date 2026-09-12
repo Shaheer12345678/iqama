@@ -56,4 +56,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=str(resources_path / "icon.ico"),
+    version=str(project_root / "packaging" / "version_info.txt"),
 )
