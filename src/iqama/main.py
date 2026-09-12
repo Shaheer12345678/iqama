@@ -11,8 +11,26 @@ from .ui.tray import TrayApplication
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
+AUMID = "ShaheerShakir.Iqama"
+
+
+def _register_app_identity() -> None:
+    """So Windows attributes notifications/taskbar grouping to Iqama
+    instead of falling back to the interpreter (e.g. "Python 3.11").
+    Cosmetic only -- must never block startup.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(AUMID)
+    except (AttributeError, OSError):
+        pass
+
 
 def main() -> int:
+    _register_app_identity()
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setOrganizationName(ORG_NAME)
