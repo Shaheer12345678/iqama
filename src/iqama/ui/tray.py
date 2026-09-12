@@ -108,7 +108,10 @@ class TrayApplication:
 
         name, when = upcoming
         remaining = when - dt.datetime.now()
-        self._tray_icon.setToolTip(f"{name} in {format_time_remaining(remaining)} ({when:%H:%M})")
+        tooltip = f"{name} in {format_time_remaining(remaining)} ({when:%H:%M})"
+        if self.prayer_service.last_error:
+            tooltip += " (cached times, server unreachable)"
+        self._tray_icon.setToolTip(tooltip)
 
     # -- midnight refresh -------------------------------------------------
     def _schedule_midnight_refresh(self) -> None:
