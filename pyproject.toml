@@ -9,7 +9,6 @@ dependencies = [
     "PySide6>=6.6",
     "requests>=2.31",
     "plyer>=2.1.0",
-    "win10toast-click>=0.1.2; sys_platform == 'win32'",
     "tzlocal>=5.2",
     "matplotlib>=3.8",
     "pywin32>=306; sys_platform == 'win32'",
