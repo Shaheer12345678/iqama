@@ -14,7 +14,7 @@ from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QSystemTrayIcon
 from ..config import APP_NAME, resource_path
 from ..data.db import Database
 from ..services.notification_scheduler import NotificationScheduler
-from ..services.prayer_service import PrayerService, format_time_remaining
+from ..services.prayer_service import PrayerService, format_time_remaining, refresh_is_stale
 from ..services.settings import Settings
 from ..services import startup
 
@@ -34,6 +34,7 @@ class TrayApplication:
         self.prayer_service = PrayerService(self.db, self.settings)
 
         self._today_times = None
+        self._last_refresh_date = None
         self._settings_window = None
         self._weekly_log_window = None
 
@@ -99,13 +100,20 @@ class TrayApplication:
     def _on_tooltip_tick(self) -> None:
         now = dt.datetime.now()
         if now - self._last_tick > CLOCK_DRIFT_TOLERANCE:
-            logger.info("Detected a wall-clock jump (likely system sleep); rescheduling notifications.")
-            self._notification_scheduler.schedule_for_today(self._today_times)
+            logger.info("Detected a wall-clock jump (likely system sleep).")
+            if refresh_is_stale(self._last_refresh_date, now):
+                logger.info("The tracked refresh date is stale; forcing a prayer-times refresh.")
+                self._refresh_prayer_times(force_refresh=True)
+                self._schedule_midnight_refresh()
+            else:
+                self._notification_scheduler.schedule_for_today(self._today_times)
         self._last_tick = now
         self._refresh_tooltip()
 
     def _refresh_prayer_times(self, force_refresh: bool = False) -> None:
         self._today_times = self.prayer_service.get_today_times(force_refresh=force_refresh)
+        if self._today_times is not None:
+            self._last_refresh_date = dt.date.today()
         self._refresh_tooltip()
         self._notification_scheduler.schedule_for_today(self._today_times)
 

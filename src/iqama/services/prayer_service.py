@@ -79,6 +79,14 @@ def _local_timezone_name() -> Optional[str]:
     return get_localzone_name()
 
 
+def refresh_is_stale(last_refresh_date: Optional[dt.date], now: dt.datetime) -> bool:
+    """Whether the calendar date has moved on since the last successful
+    prayer-times refresh -- e.g. the process was asleep across midnight
+    and its own midnight timer may have missed the rollover.
+    """
+    return last_refresh_date != now.date()
+
+
 def format_time_remaining(delta: dt.timedelta) -> str:
     total_minutes = max(0, int(delta.total_seconds() // 60))
     hours, minutes = divmod(total_minutes, 60)
