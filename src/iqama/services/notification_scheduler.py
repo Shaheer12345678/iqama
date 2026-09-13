@@ -16,6 +16,13 @@ class ScheduledNotification(NamedTuple):
     when: dt.datetime
     prayer: str
     is_adhan: bool
+    prayer_when: dt.datetime  # the prayer's own Adhan time, for recomputing "in N minutes" at fire time
+
+
+# A slept/suspended machine can leave a QTimer's countdown paused for hours;
+# anything more than this far past its intended moment is dropped instead of
+# shown with a stale or now-false countdown.
+STALE_TOLERANCE = dt.timedelta(minutes=2)
 
 
 def compute_notifications(
@@ -35,10 +42,10 @@ def compute_notifications(
         if lead_minutes > 0:
             reminder_dt = prayer_dt - dt.timedelta(minutes=lead_minutes)
             if reminder_dt > now:
-                notifications.append(ScheduledNotification(reminder_dt, prayer, False))
+                notifications.append(ScheduledNotification(reminder_dt, prayer, False, prayer_dt))
 
         if prayer_dt > now:
-            notifications.append(ScheduledNotification(prayer_dt, prayer, True))
+            notifications.append(ScheduledNotification(prayer_dt, prayer, True, prayer_dt))
 
     return notifications
 
@@ -46,8 +53,9 @@ def compute_notifications(
 class NotificationScheduler:
     """Owns the live QTimers backing today's notifications.
 
-    Call schedule_for_today() again (e.g. after a settings change or the
-    midnight refresh) to replace whatever is currently pending.
+    Call schedule_for_today() again (e.g. after a settings change, the
+    midnight refresh, or a detected wall-clock jump) to replace whatever
+    is currently pending.
     """
 
     def __init__(self, settings, parent=None) -> None:
@@ -69,17 +77,23 @@ class NotificationScheduler:
 
         timer = QTimer(self._parent)
         timer.setSingleShot(True)
-        timer.timeout.connect(lambda: self._fire(entry.prayer, entry.is_adhan))
+        timer.timeout.connect(lambda: self._fire(entry))
         timer.start(delay_ms)
         self._timers.append(timer)
 
-    def _fire(self, prayer: str, is_adhan: bool) -> None:
-        if is_adhan:
-            send_desktop_notification(f"{prayer}: Adhan", f"It's time for {prayer} prayer.")
+    def _fire(self, entry: ScheduledNotification, now: Optional[dt.datetime] = None) -> None:
+        now = now or dt.datetime.now()
+        if now - entry.when > STALE_TOLERANCE:
+            return
+
+        if entry.is_adhan:
+            send_desktop_notification(f"{entry.prayer}: Adhan", f"It's time for {entry.prayer} prayer.")
         else:
-            lead = self._settings.notify_minutes
-            plural = "s" if lead != 1 else ""
-            send_desktop_notification(f"{prayer} soon", f"{prayer} is in {lead} minute{plural}.")
+            minutes = max(0, round((entry.prayer_when - now).total_seconds() / 60))
+            plural = "s" if minutes != 1 else ""
+            send_desktop_notification(
+                f"{entry.prayer} soon", f"{entry.prayer} is in {minutes} minute{plural}."
+            )
 
     def cancel_all(self) -> None:
         for timer in self._timers:
