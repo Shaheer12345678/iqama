@@ -58,8 +58,9 @@ class NotificationScheduler:
     is currently pending.
     """
 
-    def __init__(self, settings, parent=None) -> None:
+    def __init__(self, settings, tray_icon, parent=None) -> None:
         self._settings = settings
+        self._tray_icon = tray_icon
         self._parent = parent
         self._timers: list[QTimer] = []
 
@@ -87,12 +88,16 @@ class NotificationScheduler:
             return
 
         if entry.is_adhan:
-            send_desktop_notification(f"{entry.prayer}: Adhan", f"It's time for {entry.prayer} prayer.")
+            send_desktop_notification(
+                self._tray_icon, f"{entry.prayer}: Adhan", f"It's time for {entry.prayer} prayer."
+            )
         else:
             minutes = max(0, round((entry.prayer_when - now).total_seconds() / 60))
             plural = "s" if minutes != 1 else ""
             send_desktop_notification(
-                f"{entry.prayer} soon", f"{entry.prayer} is in {minutes} minute{plural}."
+                self._tray_icon,
+                f"{entry.prayer} soon",
+                f"{entry.prayer} is in {minutes} minute{plural}.",
             )
 
     def cancel_all(self) -> None:

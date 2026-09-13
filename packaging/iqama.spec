@@ -24,7 +24,6 @@ a = Analysis(
     binaries=[],
     datas=[(str(resources_path), "resources")],
     hiddenimports=[
-        "plyer.platforms.win.notification",
         "win32timezone",
     ],
     hookspath=[],

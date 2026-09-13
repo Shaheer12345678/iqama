@@ -1,5 +1,5 @@
 import datetime as dt
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from iqama.data.models import PrayerTimes
 from iqama.services.notification_scheduler import (
@@ -95,13 +95,14 @@ def test_as_datetimes_accepts_an_override_date():
     assert result["Fajr"] == dt.datetime(2026, 9, 7, 5, 12)
 
 
-def make_scheduler() -> NotificationScheduler:
+def make_scheduler() -> tuple[NotificationScheduler, Mock]:
     settings = Mock(notify_minutes=14)
-    return NotificationScheduler(settings)
+    tray_icon = Mock()
+    return NotificationScheduler(settings, tray_icon), tray_icon
 
 
 def test_fire_drops_a_notification_far_past_its_intended_time():
-    scheduler = make_scheduler()
+    scheduler, tray_icon = make_scheduler()
     now = dt.datetime(2026, 9, 6, 23, 4)
     stale_entry = ScheduledNotification(
         when=dt.datetime(2026, 9, 6, 19, 50),
@@ -110,14 +111,13 @@ def test_fire_drops_a_notification_far_past_its_intended_time():
         prayer_when=dt.datetime(2026, 9, 6, 19, 50),
     )
 
-    with patch("iqama.services.notification_scheduler.send_desktop_notification") as mock_send:
-        scheduler._fire(stale_entry, now=now)
+    scheduler._fire(stale_entry, now=now)
 
-    mock_send.assert_not_called()
+    tray_icon.showMessage.assert_not_called()
 
 
 def test_fire_sends_a_notification_within_the_stale_tolerance():
-    scheduler = make_scheduler()
+    scheduler, tray_icon = make_scheduler()
     now = dt.datetime(2026, 9, 6, 19, 51, 30)
     entry = ScheduledNotification(
         when=dt.datetime(2026, 9, 6, 19, 50),
@@ -126,14 +126,13 @@ def test_fire_sends_a_notification_within_the_stale_tolerance():
         prayer_when=dt.datetime(2026, 9, 6, 19, 50),
     )
 
-    with patch("iqama.services.notification_scheduler.send_desktop_notification") as mock_send:
-        scheduler._fire(entry, now=now)
+    scheduler._fire(entry, now=now)
 
-    mock_send.assert_called_once()
+    tray_icon.showMessage.assert_called_once()
 
 
 def test_fire_reminder_body_uses_actual_remaining_time_not_configured_lead():
-    scheduler = make_scheduler()
+    scheduler, tray_icon = make_scheduler()
     now = dt.datetime(2026, 9, 6, 19, 30)
     entry = ScheduledNotification(
         when=now,
@@ -142,10 +141,9 @@ def test_fire_reminder_body_uses_actual_remaining_time_not_configured_lead():
         prayer_when=now + dt.timedelta(minutes=3),
     )
 
-    with patch("iqama.services.notification_scheduler.send_desktop_notification") as mock_send:
-        scheduler._fire(entry, now=now)
+    scheduler._fire(entry, now=now)
 
-    title, body = mock_send.call_args[0][:2]
+    title, body = tray_icon.showMessage.call_args[0][:2]
     assert title == "Maghrib soon"
     assert "3 minute" in body
     assert "14 minute" not in body

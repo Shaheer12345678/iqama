@@ -32,7 +32,6 @@ class TrayApplication:
         self.settings = Settings()
         self.db = Database()
         self.prayer_service = PrayerService(self.db, self.settings)
-        self._notification_scheduler = NotificationScheduler(self.settings, parent=app)
 
         self._today_times = None
         self._settings_window = None
@@ -41,6 +40,8 @@ class TrayApplication:
         self._tray_icon = QSystemTrayIcon(QIcon(str(resource_path("icon.ico"))), app)
         self._tray_icon.setToolTip(APP_NAME)
         self._build_menu()
+
+        self._notification_scheduler = NotificationScheduler(self.settings, self._tray_icon, parent=app)
 
         self._last_tick = dt.datetime.now()
         self._tooltip_timer = QTimer(app)

@@ -10,6 +10,7 @@ from .config import APP_NAME, ORG_NAME
 from .ui.tray import TrayApplication
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 AUMID = "ShaheerShakir.Iqama"
 
@@ -24,9 +25,10 @@ def _register_app_identity() -> None:
     try:
         import ctypes
 
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(AUMID)
+        result = ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(AUMID)
+        logger.info("Registered Windows AppUserModelID %r (result=%s)", AUMID, result)
     except (AttributeError, OSError):
-        pass
+        logger.warning("Could not register the Windows AppUserModelID.", exc_info=True)
 
 
 def main() -> int:
